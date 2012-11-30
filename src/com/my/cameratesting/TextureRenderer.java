@@ -24,8 +24,11 @@ public class TextureRenderer implements GLSurfaceView.Renderer {
 	private int mPositionHandle;
 	private int mTexCoordinateHandle;
 	
-	private int mTextureUniformHandle;
-	private int mTextureDataHandle;
+	private int mTextureUniformHandle0;
+	private int mTextureUniformHandle1;
+
+	private int mTextureDataHandle0;
+	private int mTextureDataHandle1;
 	
 	private int mProgramHandle;
 	
@@ -39,9 +42,16 @@ public class TextureRenderer implements GLSurfaceView.Renderer {
 	private final FloatBuffer mScreenPosition;
 	private final FloatBuffer mTextureCoordinate;
 	private Context mActivityContext;
+	
 	private Bitmap mImage;
+	private ByteBuffer mBuffer;
+	private int mWidth;
+	private int mHeight;
 	
 	TextureRenderer( final Context activityContext ) {
+
+		//int bufferCapacity = mWidth * mHeight * 3 / 2;
+		//mBuffer = ByteBuffer.allocate(mWidth * mHeight * 3 / 2);
 		
 		mActivityContext = activityContext;
 /*
@@ -116,8 +126,22 @@ public class TextureRenderer implements GLSurfaceView.Renderer {
 		
 		final String fragmentShader =
 			"precision mediump float;								  \n"
-		  + "uniform sampler2D u_Texture;                             \n" // The input texture.
-		  + "varying vec2 v_TexCoordinate;                            \n" 
+		  + "uniform sampler2D u_Texture0;                            \n" // The input texture.
+		  + "uniform sampler2D u_Texture1;                            \n" // The input texture.
+		  + "varying vec2 v_TexCoordinate;                            \n"
+		  + "                                                         \n"
+		  + "                                                         \n"
+		  + "const vec3 offset = vec3(0.0625, 0.5, 0.5);              \n"
+		  + "const mat3 coeffs = mat3(              				  \n"
+		  + "	1.164,  1.164,  1.164,              				  \n"
+		  + "	1.596, -0.813,  0.0,              					  \n"
+		  + "	0.0  , -0.391,  2.018 );              				  \n"
+		  + "              											  \n"
+		  + "vec3 texture2Dsmart(vec2 uv)              				  \n"
+		  + "  {													  \n"	
+		  + "		return coeffs*(vec3(texture2D(tex0, uv).r, texture2D(tex1, uv).ra) - offset);  \n"
+		  + "  }              										  \n"
+		  + "              											  \n"
 		  + "void main()                                              \n"		// The entry point for our fragment shader.
 		  + "{                                                        \n"
 		  + "    gl_FragColor = texture2D(u_Texture, v_TexCoordinate);\n"		// Pass the color directly through the pipeline.		  
@@ -179,9 +203,6 @@ public class TextureRenderer implements GLSurfaceView.Renderer {
 			GLES20.glAttachShader(mProgramHandle, fragmentShaderHandle);
 			// Bind attributes
 			GLES20.glBindAttribLocation(mProgramHandle, 0, "a_Position");
-//			GLES20.glBindAttribLocation(mProgramHandle, 1, "u_Texture");
-			//GLES20.glBindAttribLocation(mProgramHandle, 1, "a_TexCoordinate");
-			//GLES20.glBindAttribLocation(mProgramHandle, 2, "u_Texture");
 			// Link the two shaders together into a program.
 			GLES20.glLinkProgram(mProgramHandle);
 
@@ -202,37 +223,49 @@ public class TextureRenderer implements GLSurfaceView.Renderer {
         
         mPositionHandle = GLES20.glGetAttribLocation(mProgramHandle, "a_Position");
         mTexCoordinateHandle = GLES20.glGetAttribLocation(mProgramHandle, "a_TexCoordinate");
-    	mTextureUniformHandle = GLES20.glGetUniformLocation(mProgramHandle, "u_Texture");
+    	mTextureUniformHandle0 = GLES20.glGetUniformLocation(mProgramHandle, "u_Texture0");
+    	mTextureUniformHandle1 = GLES20.glGetUniformLocation(mProgramHandle, "u_Texture1");
     	
 		final int[] textureHandle = new int[1];
 		GLES20.glGenTextures(1, textureHandle, 0);
 		if (textureHandle[0] != 0)
 		{
-			mTextureDataHandle = textureHandle[0];
+			mTextureDataHandle0 = textureHandle[0];
 		} else {
 			throw new RuntimeException("Error loading texture.");
 		}
-		
-    	GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureDataHandle);
-
-		// Set filtering
-        //GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
-        //GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
-        //GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
-        //GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
-		// Set filtering
+    	GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureDataHandle0);
 		GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
 		GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
-        //GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, null, 0);
+
+		GLES20.glGenTextures(1, textureHandle, 0);
+		if (textureHandle[0] != 0)
+		{
+			mTextureDataHandle1 = textureHandle[0];
+		} else {
+			throw new RuntimeException("Error loading texture.");
+		}
+    	GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureDataHandle1);
+		GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
+		GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
+		
 
 	}
 	
 
+	public synchronized void drawFrame( int width, int height, byte [] buf /*final int [] imageBytes*/)
+	{
+		mBuffer = ByteBuffer.wrap(buf);
+		mBuffer.position(0);
+
+		mWidth = width;
+		mHeight = height;
+			
+	}
+	
 	public void loadTexture( int width, int height, Bitmap bmp /*final int [] imageBytes*/)
 	{
-			// Read in the resource
-			//final Bitmap bitmap = BitmapFactory.decodeResource(context.getResources(), resourceId, options);
-			//byte[] image = (byte[]) imageBytes;
+
 			final Bitmap bitmap = bmp; //Bitmap.createBitmap(imageBytes, width, height, Bitmap.Config.ARGB_8888);
 					
 			setImage( bitmap );
@@ -248,12 +281,12 @@ public class TextureRenderer implements GLSurfaceView.Renderer {
 		GLES20.glUseProgram(mProgramHandle);
 
         // Set program handles. These will later be used to pass in values to the program.
-        //mMVPMatrixHandle = GLES20.glGetUniformLocation(programHandle, "u_MVPMatrix");        
         //mPositionHandle = GLES20.glGetAttribLocation(mProgramHandle, "a_Position");
         //mTexCoordinateHandle = GLES20.glGetAttribLocation(mProgramHandle, "a_TexCoordinate");
     	//mTextureUniformHandle = GLES20.glGetUniformLocation(mProgramHandle, "u_Texture");
 		
-    	loadAndDrawTexture();
+    	//loadAndDrawTexture();
+    	loadAndDrawTextureFromBuffer();
         
 		mScreenPosition.position( 0 );
         GLES20.glVertexAttribPointer(mPositionHandle, mPositionDataSize, GLES20.GL_FLOAT, false,
@@ -277,9 +310,8 @@ public class TextureRenderer implements GLSurfaceView.Renderer {
 		if( image != null ) {
 			
         	GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        	GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureDataHandle);
-        	GLES20.glUniform1i(mTextureUniformHandle, 0);      	
-
+        	GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureDataHandle0);
+        	GLES20.glUniform1i(mTextureUniformHandle0, 0);      	
         	GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, image, 0);
             //GLES20.glTexImage2D( GLES20.GL_TEXTURE_2D, 0, GLES20.GL_LUMINANCE,
             //        textureWidth, textureHeight, 0, GLES20.GL_LUMINANCE, GLES20.GL_UNSIGNED_BYTE, frameData);
@@ -291,6 +323,36 @@ public class TextureRenderer implements GLSurfaceView.Renderer {
 		}
 		
 	}
+
+	
+	private void loadAndDrawTextureFromBuffer() {
+
+		ByteBuffer frameData = getBuffer();
+		if( frameData  != null ) {
+			
+        	GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        	GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureDataHandle0);
+        	GLES20.glUniform1i(mTextureUniformHandle0, 0);      	
+        	//GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, image, 0);
+            GLES20.glTexImage2D( GLES20.GL_TEXTURE_2D, 0, GLES20.GL_LUMINANCE,
+                    mWidth, mHeight, 0, GLES20.GL_LUMINANCE, GLES20.GL_UNSIGNED_BYTE, frameData);
+
+
+        	GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        	GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureDataHandle1);
+        	GLES20.glUniform1i(mTextureUniformHandle1, 0);      	
+        	//GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, image, 0);
+            GLES20.glTexImage2D( GLES20.GL_TEXTURE_2D, 0, GLES20.GL_LUMINANCE,
+                    mWidth, mHeight, 0, GLES20.GL_LUMINANCE, GLES20.GL_UNSIGNED_BYTE, frameData);
+
+            // Recycle the bitmap, since its data has been loaded into OpenGL.
+			//image.recycle();
+			//mImage = null;
+
+		}
+		
+	}
+
 	
 	private synchronized Bitmap getImage() {
 		Bitmap img = mImage;
@@ -298,46 +360,15 @@ public class TextureRenderer implements GLSurfaceView.Renderer {
 		return img;
 	} 
 
+	
+	private synchronized ByteBuffer getBuffer() {
+		return mBuffer;
+	} 
+	
 	private synchronized void setImage(Bitmap img) {
 		mImage = img;
 		
 	} 
 
-	
-	public static int loadTexture1(final Context context, final int resourceId)
-	{
-		final int[] textureHandle = new int[1];
-		
-		GLES20.glGenTextures(1, textureHandle, 0);
-		
-		if (textureHandle[0] != 0)
-		{
-			final BitmapFactory.Options options = new BitmapFactory.Options();
-			options.inScaled = false;	// No pre-scaling
-
-			// Read in the resource
-			final Bitmap bitmap = BitmapFactory.decodeResource(context.getResources(), resourceId, options);
-						
-			// Bind to the texture in OpenGL
-			GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureHandle[0]);
-			
-			// Set filtering
-			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
-			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
-			
-			// Load the bitmap into the bound texture.
-			GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
-			
-			// Recycle the bitmap, since its data has been loaded into OpenGL.
-			bitmap.recycle();						
-		}
-		
-		if (textureHandle[0] == 0)
-		{
-			throw new RuntimeException("Error loading texture.");
-		}
-		
-		return textureHandle[0];
-	}
 	
 }

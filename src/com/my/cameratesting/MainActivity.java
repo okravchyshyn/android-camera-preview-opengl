@@ -41,7 +41,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
 	private GLSurfaceView mGLSurfaceView;
 	private ViewGroup mFrame;
 	private TextureRenderer mRenderer;
-	private AsynсNV21Decoder nv21Decoder;
+	//private AsynсNV21Decoder nv21Decoder;
 	private int counter = 0;
 	
     @Override
@@ -126,8 +126,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     	mCamera.stopPreview();
     	mCamera.release();
 
-    	if( nv21Decoder != null)
-    		nv21Decoder.releaseThread();
+    	//if( nv21Decoder != null)
+    	//	nv21Decoder.releaseThread();
 
     }
 
@@ -163,8 +163,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
 		        mX = size.width;
 		        mY = size.height;
 		        
-		        nv21Decoder = new AsynсNV21Decoder(mX, mY);
-		        nv21Decoder.start();
+		        //nv21Decoder = new AsynсNV21Decoder(mX, mY);
+		        //nv21Decoder.start();
 		        
 		        mData = new byte[mX * mY * 3 / 2];
 		        mCamera.addCallbackBuffer(mData);
@@ -186,8 +186,9 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
 		 Camera.Parameters parameters = mCamera.getParameters();
 		 Camera.Size s = parameters.getPreviewSize();
 
-		 //if( nv21Decoder != null )	 
-		 nv21Decoder.processBuffer( data ); 
+		 //if( nv21Decoder != null ) nv21Decoder.processBuffer( data );
+		 mRenderer.drawFrame(s.width, s.height, data);
+		 mGLSurfaceView.requestRender();
 		 
 /*		 
 		 System.arraycopy(data, 0, mData , 0, s.width * s.height * 3 / 2);
