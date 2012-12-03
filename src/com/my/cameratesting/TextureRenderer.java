@@ -371,7 +371,7 @@ public class TextureRenderer implements GLSurfaceView.Renderer {
                     mWidth/2, mHeight/2, 0, GLES20.GL_LUMINANCE_ALPHA, GLES20.GL_UNSIGNED_BYTE, frameData);
             frameData.position(0);
 
-        	GLES20.glUniform1i(mTextureUniformHandle0, 1);      	
+        	GLES20.glUniform1i(mTextureUniformHandle1, 1);      	
         	//GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, image, 0);
         	
 
