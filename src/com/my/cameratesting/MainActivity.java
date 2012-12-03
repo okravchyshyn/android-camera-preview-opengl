@@ -125,6 +125,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         mCamera.setPreviewCallback(null);
     	mCamera.stopPreview();
     	mCamera.release();
+    	mCamera = null;
 
     	//if( nv21Decoder != null)
     	//	nv21Decoder.releaseThread();
@@ -152,10 +153,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
 		        
 		        mX = mFrame.getWidth();
 		        mY = mFrame.getHeight();
-		        mX = (mX/4) * 4;
-		        mY = (mY/4) * 4;
-		        parameters.setPreviewSize( mX, mY);
-		        mCamera.setParameters(parameters);
+		        //mX = (mX/4) * 4;
+		        //mY = (mY/4) * 4;
+		        //parameters.setPreviewSize( mX, mY);
+		        //mCamera.setParameters(parameters);
 		       
 		        parameters = mCamera.getParameters();
 		        Camera.Size size = parameters.getPreviewSize();
